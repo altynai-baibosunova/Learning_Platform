@@ -1,10 +1,10 @@
 package com.altynai.internship.service;
 
+import com.altynai.internship.config.JwtProperties;
 import com.altynai.internship.model.User;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
@@ -17,53 +17,51 @@ import java.util.function.Function;
 @Service
 public class JwtService {
 
-    @Value("${jwt.secret}")
-    private String secretKey;
+    private final JwtProperties jwtProperties;
 
-    // Generate a JWT token for the given user
+    public JwtService(JwtProperties jwtProperties) {
+        this.jwtProperties = jwtProperties;
+    }
+
+    // Generate a JWT token for a user
     public String generateToken(User user) {
         return generateToken(Map.of(), user);
     }
 
-    // Generate a JWT token with optional extra claims
+    // Generate a JWT token with extra claims
     public String generateToken(Map<String, Object> extraClaims, User user) {
         return Jwts.builder()
                 .setClaims(extraClaims)
                 .setSubject(user.getUsername())
-                .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 24)) // 24 hours
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + jwtProperties.getExpirationMs()))
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
 
-    // Validate if the token is valid for the given user
+    // Validate token against UserDetails
     public boolean isTokenValid(String token, UserDetails userDetails) {
         final String username = extractUsername(token);
         return (username.equals(userDetails.getUsername()) && !isTokenExpired(token));
     }
 
-    // Extract username from the token
+    // Extract username from token
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
     }
 
-    // Check if the token has expired
-    private boolean isTokenExpired(String token) {
-        return extractExpiration(token).before(new Date());
-    }
-
-    // Extract expiration date from the token
-    private Date extractExpiration(String token) {
-        return extractClaim(token, Claims::getExpiration);
-    }
-
-    // Extract a specific claim from the token
+    // Extract any claim
     public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
         final Claims claims = extractAllClaims(token);
         return claimsResolver.apply(claims);
     }
 
-    // Parse and validate all claims from the token
+    // Check token expiration
+    private boolean isTokenExpired(String token) {
+        return extractClaim(token, Claims::getExpiration).before(new Date());
+    }
+
+    // Extract all claims
     private Claims extractAllClaims(String token) {
         try {
             return Jwts.parserBuilder()
@@ -78,16 +76,19 @@ public class JwtService {
         }
     }
 
-    // Create the signing key (supports Base64 or plain text secrets)
+    // Create signing key (supports Base64 or plain text)
     private Key getSigningKey() {
+        String secretKey = jwtProperties.getSecret();
+
         if (secretKey == null || secretKey.isEmpty()) {
-            throw new IllegalStateException("JWT secret key is missing. Configure 'jwt.secret' in application.yml or .env");
+            throw new IllegalStateException("JWT secret key is missing. Configure 'jwt.secret'");
         }
 
         try {
             byte[] decodedKey = Decoders.BASE64.decode(secretKey);
             return Keys.hmacShaKeyFor(decodedKey);
         } catch (IllegalArgumentException e) {
+            // fallback: plain text
             return Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
         }
     }
