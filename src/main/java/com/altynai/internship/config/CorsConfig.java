@@ -1,32 +1,26 @@
 package com.altynai.internship.config;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
 
-import java.util.Arrays;
-
 @Configuration
 public class CorsConfig {
 
-    @Value("${app.cors.allowed-origins}")
-    private String allowedOrigins;
+    private final CorsProperties corsProperties;
 
-    @Value("${app.cors.allowed-methods}")
-    private String allowedMethods;
-
-    @Value("${app.cors.allowed-headers}")
-    private String allowedHeaders;
+    public CorsConfig(CorsProperties corsProperties) {
+        this.corsProperties = corsProperties;
+    }
 
     @Bean
     public CorsFilter corsFilter() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(Arrays.asList(allowedOrigins.split(",")));
-        config.setAllowedMethods(Arrays.asList(allowedMethods.split(",")));
-        config.setAllowedHeaders(Arrays.asList(allowedHeaders.split(",")));
+        config.setAllowedOrigins(corsProperties.getAllowedOrigins());
+        config.setAllowedMethods(corsProperties.getAllowedMethods());
+        config.setAllowedHeaders(corsProperties.getAllowedHeaders());
         config.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
