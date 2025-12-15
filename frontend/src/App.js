@@ -6,10 +6,18 @@ import Login from "./components/Login.jsx";
 import Chat from "./components/Chat.jsx";
 import ProtectedRoute from "./components/ProtectedRoute";
 
+function Home() {
+  return (
+    <div style={{ textAlign: "center", marginTop: "50px" }}>
+      <h1>Hello, Altynai!</h1>
+      <p>My first React app is running!</p>
+    </div>
+  );
+}
+
 function App() {
   return (
     <Router>
-      {/*  background color */}
       <div
         style={{
           display: "flex",
@@ -20,16 +28,19 @@ function App() {
         }}
       >
         <Routes>
+          {/* Home / Welcome page */}
+          <Route path="/home" element={<Home />} />
+
           {/* Registration page */}
           <Route path="/register" element={<Register />} />
 
           {/* Login page */}
           <Route path="/login" element={<Login />} />
 
-          {/* Default route — redirect to login or register */}
-            <Route path="/" element={<Login />} />
+          {/* Default route redirects to home */}
+          <Route path="/" element={<Home />} />
 
-          {/* Chat page (only for authorized users) */}
+          {/* Chat page (protected) */}
           <Route
             path="/chat"
             element={
